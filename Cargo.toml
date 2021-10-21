@@ -3,8 +3,54 @@ name = "crow"
 version = "0.1.0"
 authors = ["Theo Salzmann <theo.salzmann@sandstorm.de>"]
 edition = "2018"
+description = "crow (command row) is a CLI tool to help you memorize CLI commands by saving them with a unique description. Whenever you can't remember a certain command you can then use crow to fuzzy search commands by their description. (NOTE: this tool currently only works on UNIX systems!)"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "3.0.0-beta.5"
+regex = "1"
+fuzzy-matcher = "0.3"
+nanoid = "0.4.0"
+copypasta = "0.7.1"
+
+
+###############
+# Arg parsing #
+###############
+
+clap = "2.33.0"
+
+
+######################
+# (De-)Serialization #
+######################
+
+# The core APIs, including the Serialize and Deserialize traits. Always
+# required when using Serde. The "derive" feature is only required when
+# using #[derive(Serialize, Deserialize)] to make Serde work with structs
+# and enums defined in your crate.
+serde = { version = "^1.0.0", features = ["derive"] }
+
+# Each data format lives in its own crate; the sample code below uses JSON
+# but you may be using a different one.
+serde_json = "^1.0.0"
+
+
+#######################
+# File/Dir management #
+#######################
+
+dirs = "4.0"
+
+
+###############
+# Terminal UI #
+###############
+
+crossterm = "0.20"
+tui = { version = "0.16", default-features = false, features = ['crossterm'] }
+dialoguer = "0.9.0"
+
+# Measure string by unicode characters
+unicode-width = "0.1.5"
