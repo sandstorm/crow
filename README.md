@@ -1,4 +1,9 @@
-# crow - cli command memorizer
+<div align="center">
+  <img alt="crow" src="./docs/crow_cli.png" width="250" />
+
+  # crow - cli command memorizer
+
+</div>
 
 > Note crow is currently in development.
 > However the app should already be functioning.

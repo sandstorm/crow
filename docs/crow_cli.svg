@@ -1,0 +1,49 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 300">
+  <defs>
+    <style>
+      .cls-1, .cls-3 {
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .cls-1 {
+        stroke-width: 10px;
+        fill: url(#radial-gradient);
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        fill: none;
+        stroke-width: 20px;
+      }
+
+      .cls-4 {
+        font-size: 300px;
+        fill: #00222a;
+        font-family: Courier-Oblique, Courier;
+        font-style: oblique;
+      }
+    </style>
+    <radialGradient id="radial-gradient" cx="137.99" cy="150" r="121.36" gradientUnits="userSpaceOnUse">
+      <stop offset="0"/>
+      <stop offset="0.46" stop-color="#000102"/>
+      <stop offset="0.63" stop-color="#010609"/>
+      <stop offset="0.75" stop-color="#020f14"/>
+      <stop offset="0.85" stop-color="#041c25"/>
+      <stop offset="0.93" stop-color="#072c3b"/>
+      <stop offset="1" stop-color="#0a3f55"/>
+    </radialGradient>
+  </defs>
+  <g>
+    <path class="cls-1" d="M252,42.13c-49.05-17.49-71.72-16.68-108.51-16-68.46,1.33-124,55.51-124,124a124,124,0,0,0,124,124c26.86,0,64-.46,113.07-10.95L188.8,175.35Z"/>
+    <circle class="cls-2" cx="149.53" cy="150" r="106.99"/>
+    <polyline class="cls-3" points="127.54 95.71 181.83 150 127.54 204.29"/>
+    <path class="cls-3" d="M274.41,60.68S345.9,81.32,421.3,169c0,0-52.29,61.81-143.59,80.88"/>
+    <path class="cls-3" d="M411.88,169s-112.66,15.79-178.73,2.28"/>
+  </g>
+  <text class="cls-4" transform="translate(411.97 270.28)">row</text>
+</svg>
