@@ -23,7 +23,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: crow.tar.gz
-       - name: Update Homebrew formula
+      - name: Update Homebrew formula
         uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           # Required, custom GitHub access token with the 'public_repo' and 'workflow' scopes
@@ -37,4 +37,4 @@ jobs:
           # Optional, will be determined automatically
           revision: ${{github.sha}}
           # Optional, if don't want to check for already open PRs
-          force: false # true         
+          force: false # true
