@@ -23,6 +23,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: crow.tar.gz
+      - name: Extract version
+        id: extract-version
+        run: |
+          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
       - name: Update Homebrew formula
         uses: mislav/bump-homebrew-formula-action@v1
         with:
