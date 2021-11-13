@@ -29,7 +29,8 @@ jobs:
           # A PR will be sent to github.com/Homebrew/homebrew-core to update this formula:
           formula-name: crow
           formula-path: Formula/crow.rb
-          homebrew-tap: sandstorm/crow
+          homebrew-tap: sandstorm/homebrew-crow
+          download-url: https://github.com/sandstorm/crow/releases/download/${{ steps.extract-version.outputs.tag-name }}/crow.tar.gz
           base-branch: main
         env:
           COMMITTER_TOKEN: ${{ secrets.CROW_TAP_TOKEN }}
