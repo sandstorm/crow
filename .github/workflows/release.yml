@@ -23,3 +23,18 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: crow.tar.gz
+       - name: Update Homebrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          # Required, custom GitHub access token with the 'public_repo' and 'workflow' scopes
+          token: ${{secrets.CROW_TAP_TOKEN}}
+          # Optional, defaults to homebrew/core
+          tap: sandstorm/crow
+          # Formula name, required
+          formula: crow
+          # Optional, will be determined automatically
+          tag: ${{github.ref}}
+          # Optional, will be determined automatically
+          revision: ${{github.sha}}
+          # Optional, if don't want to check for already open PRs
+          force: false # true         
