@@ -1,8 +1,5 @@
 name: Release
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [release]
 jobs:
   release:
     runs-on: macos-latest
