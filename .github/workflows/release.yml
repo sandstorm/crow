@@ -18,7 +18,7 @@ jobs:
           args: --release --all-features
           use-cross: true
       - name: compress
-        run: tar -czf crow.tar.gz target/release/crow
+        run: tar -C target/release -czf crow.tar.gz crow
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
