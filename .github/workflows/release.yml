@@ -1,0 +1,40 @@
+name: Release
+on:
+  release:
+    types: [published]
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+          use-cross: true
+      - name: compress
+        run: tar -C target/release -czf crow.tar.gz crow
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: crow.tar.gz
+      - name: Extract version
+        id: extract-version
+        run: |
+          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
+      - name: Update Homebrew formula
+        uses: mislav/bump-homebrew-formula-action@v1
+        with:
+          # A PR will be sent to github.com/Homebrew/homebrew-core to update this formula:
+          formula-name: crow
+          formula-path: Formula/crow.rb
+          homebrew-tap: sandstorm/homebrew-crow
+          download-url: https://github.com/sandstorm/crow/releases/download/${{ steps.extract-version.outputs.tag-name }}/crow.tar.gz
+          base-branch: main
+        env:
+          COMMITTER_TOKEN: ${{ secrets.CROW_TAP_TOKEN }}
