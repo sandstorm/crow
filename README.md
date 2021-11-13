@@ -3,7 +3,7 @@
 
   # crow - cli command memorizer
 
-  [What is crow?](#what-is-crow) | [Usage](#usage) | [FAQ](#faq)
+  [What is crow?](#what-is-crow) | [Installation](#installation) | [Usage](#usage) | [FAQ](#faq)
 
 
 </div>
