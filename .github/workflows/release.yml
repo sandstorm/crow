@@ -2,10 +2,6 @@ name: Release
 on:
   release:
     types: [published]
-on:
-  push:
-    tags:
-      - "v*.*.*"
 jobs:
   release:
     runs-on: macos-latest
