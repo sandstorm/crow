@@ -2,7 +2,7 @@ on: [push]
 name: build
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -12,11 +12,17 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --release --all-features
+          use-cross: true
       - name: test
         uses: actions-rs/cargo@v1
         with:
           command: test
       - name: lint
         uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: security-audit
+        uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
