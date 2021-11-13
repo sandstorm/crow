@@ -26,6 +26,10 @@ brew install crow
 > Technically crow should run on most UNIX systems and maybe even on Windows.
 > As soon as crow has been tested on more systems we may provide additional compiled binaries.
 
+<div align="center">
+  <img alt="crow-screenshot" src="./docs/screenshot.png" width="650" />
+</div>
+
 
 ## Usage
 
