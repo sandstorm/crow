@@ -21,11 +21,3 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-  audit:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: security-audit
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
