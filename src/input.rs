@@ -66,7 +66,7 @@ fn handle_delete(event: CEvent, state: &mut State) -> Result<(), Error> {
             } => {
                 if let Some(c) = state.selected_command() {
                     // TODO revert control here:
-                    // We should just make a coll to our state which in turn should handle
+                    // We should just make a call to our state which in turn should handle
                     // the database update.
                     match CrowDB::remove_command(c) {
                         Ok(commands) => {
