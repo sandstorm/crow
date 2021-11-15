@@ -48,7 +48,7 @@ dirs = "4.0"
 # Terminal UI #
 ###############
 
-crossterm = "0.20"
+crossterm = "0.22"
 tui = { version = "0.16", default-features = false, features = ['crossterm'] }
 dialoguer = "0.9.0"
 
