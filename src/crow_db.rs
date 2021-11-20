@@ -4,7 +4,6 @@ use std::{
     fs::{create_dir_all, read_to_string, write},
     path::PathBuf,
 };
-use tui::text::Text;
 
 use dirs::home_dir;
 
@@ -61,12 +60,6 @@ impl Display for CrowCommand {
 impl PartialEq for CrowCommand {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
-    }
-}
-
-impl From<&CrowCommand> for Text<'_> {
-    fn from(cmd: &CrowCommand) -> Self {
-        Text::from(cmd.command.clone())
     }
 }
 
