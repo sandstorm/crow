@@ -70,8 +70,10 @@ fn handle_delete(event: CEvent, state: &mut State) -> Result<(), Error> {
                     // the database update.
                     match CrowDB::remove_command(c) {
                         Ok(commands) => {
-                            state.set_command_ids(commands.iter().map(|c| c.id.clone()).collect());
-                            state.set_commands(State::normalize_commands(commands));
+                            state.set_crow_command_ids(
+                                commands.iter().map(|c| c.id.clone()).collect(),
+                            );
+                            state.set_crow_commands(State::normalize_crow_commands(commands));
                             state.set_fuzz_result(vec![]);
                             state.set_input("".to_string());
                             state.set_active_menu_item(MenuItem::Find);
@@ -117,7 +119,7 @@ fn handle_edit(
                     let edited_description = Editor::new()
                         .edit(&command.description)
                         .unwrap_or_else(|e| eject(&format!("Could not edit description. {}", e)));
-                    state.update_command_description(
+                    state.update_crow_command_description(
                         command.id,
                         &edited_description.unwrap_or_else(|| "".to_string()),
                     );
@@ -135,7 +137,7 @@ fn handle_edit(
                     let edited_command = Editor::new()
                         .edit(&command.command)
                         .unwrap_or_else(|e| eject(&format!("Could not edit command. {}", e)));
-                    state.update_command_command(
+                    state.update_crow_command(
                         command.id,
                         &edited_command.unwrap_or_else(|| "".to_string()),
                     );
@@ -169,7 +171,7 @@ fn handle_find(
                     code: KeyCode::Down,
                     ..
                 } => {
-                    if let Some(selected) = state.command_list().selected() {
+                    if let Some(selected) = state.command_list_state().selected() {
                         let selected_index = if selected >= fuzz_result_count - 1 {
                             0
                         } else {
@@ -183,7 +185,7 @@ fn handle_find(
                 KeyEvent {
                     code: KeyCode::Up, ..
                 } => {
-                    if let Some(selected) = state.command_list().selected() {
+                    if let Some(selected) = state.command_list_state().selected() {
                         let selected_index = if selected > 0 {
                             selected - 1
                         } else {
@@ -224,7 +226,10 @@ fn handle_find(
                     modifiers: KeyModifiers::NONE,
                 } => {
                     state.mut_input().push(c);
-                    state.set_fuzz_result(fuzzy_search_commands(state.commands(), state.input()));
+                    state.set_fuzz_result(fuzzy_search_commands(
+                        state.crow_commands(),
+                        state.input(),
+                    ));
 
                     // We always want to select the first list element, when a new fuzzy search is being
                     // triggered
@@ -237,7 +242,10 @@ fn handle_find(
                 } => {
                     state.mut_input().pop();
 
-                    state.set_fuzz_result(fuzzy_search_commands(state.commands(), state.input()));
+                    state.set_fuzz_result(fuzzy_search_commands(
+                        state.crow_commands(),
+                        state.input(),
+                    ));
 
                     // We always want to select the first list element, when a new fuzzy search is being
                     // triggered

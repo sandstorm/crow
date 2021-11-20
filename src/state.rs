@@ -8,6 +8,34 @@ use crate::crow_db::CrowCommand;
 use tui::widgets::ListState;
 
 type Commands = HashMap<Id, CrowCommand>;
+type ScoredCommands = HashMap<Id, ScoredCommand>;
+
+#[derive(Debug, Default)]
+struct CrowCommands {
+    /// Lookup hashmap of commands
+    commands: Commands,
+
+    /// List of all command ids
+    command_ids: Vec<Id>,
+}
+
+#[derive(Debug, Default)]
+struct FuzzResult {
+    commands: ScoredCommands,
+    command_ids: Vec<Id>,
+}
+
+impl FuzzResult {
+    /// Get a reference to the fuzz result's commands.
+    fn commands(&self) -> &ScoredCommands {
+        &self.commands
+    }
+
+    /// Get a reference to the fuzz result's command ids.
+    fn command_ids(&self) -> &[String] {
+        self.command_ids.as_ref()
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct State {
@@ -17,14 +45,10 @@ pub struct State {
     /// List state which is used for [crate::rendering::command_list]
     command_list_state: ListState,
 
-    /// Lookup hashmap of commands
-    commands: Commands,
-
-    /// List of all command ids
-    command_ids: Vec<Id>,
+    crow_commands: CrowCommands,
 
     /// List of filtered commands
-    fuzz_result: Vec<ScoredCommand>,
+    fuzz_result: FuzzResult,
 
     /// The currently selected command
     selected_command: Option<Id>,
@@ -70,16 +94,16 @@ impl State {
 
         // TODO expose error handling and use [eject] where possible
         let commands = CrowDB::read().commands().clone();
-        state.set_command_ids(commands.iter().map(|c| c.id.clone()).collect());
+        state.set_crow_command_ids(commands.iter().map(|c| c.id.clone()).collect());
 
-        state.set_commands(State::normalize_commands(commands));
+        state.set_crow_commands(State::normalize_crow_commands(commands));
         state.select_command(0);
 
         state
     }
 
     /// Normalizes a vec of commands into a lookup HashMap<Id, CrowCommand>
-    pub fn normalize_commands(commands: Vec<CrowCommand>) -> Commands {
+    pub fn normalize_crow_commands(commands: Vec<CrowCommand>) -> Commands {
         commands.into_iter().fold(HashMap::new(), |mut acc, c| {
             acc.insert(c.id.clone(), c);
             acc
@@ -87,19 +111,19 @@ impl State {
     }
 
     /// Denormalizes a lookup HashMap<Id, CrowCommand> into a vec of CrowCommands
-    pub fn denormalize_commands(commands: &Commands) -> Vec<CrowCommand> {
+    pub fn denormalize_crow_commands(commands: &Commands) -> Vec<CrowCommand> {
         commands.values().cloned().collect()
     }
 
     /// Gets a denormalized vec of CrowCommands
-    pub fn commands(&self) -> Vec<CrowCommand> {
-        State::denormalize_commands(&self.commands)
+    pub fn crow_commands(&self) -> Vec<CrowCommand> {
+        State::denormalize_crow_commands(&self.crow_commands.commands)
     }
 
     /// Writes the current command state to the crow_db file
     pub fn write_commands_to_db(&self) {
         let mut db = CrowDB::read();
-        db.set_commands(self.commands());
+        db.set_commands(self.crow_commands());
         db.write();
     }
 
@@ -119,7 +143,7 @@ impl State {
     }
 
     /// Returns the command list state used for [crate::rendering::command_list]
-    pub fn command_list(&self) -> &ListState {
+    pub fn command_list_state(&self) -> &ListState {
         &self.command_list_state
     }
 
@@ -134,13 +158,16 @@ impl State {
     }
 
     /// Sets the commands lookup hash map
-    pub fn set_commands(&mut self, commands: Commands) {
-        self.commands = commands;
+    pub fn set_crow_commands(&mut self, commands: Commands) {
+        self.crow_commands = CrowCommands {
+            commands,
+            command_ids: self.crow_commands.command_ids.clone(),
+        };
     }
 
     /// Updates the description of a command
-    pub fn update_command_description(&mut self, command_id: Id, description: &str) {
-        if let Some(c) = self.commands.get_mut(&command_id) {
+    pub fn update_crow_command_description(&mut self, command_id: Id, description: &str) {
+        if let Some(c) = self.crow_commands.commands.get_mut(&command_id) {
             *c = CrowCommand {
                 description: description.to_string(),
                 ..c.clone()
@@ -149,8 +176,8 @@ impl State {
     }
 
     /// Updates the command of a command
-    pub fn update_command_command(&mut self, command_id: Id, command: &str) {
-        if let Some(c) = self.commands.get_mut(&command_id) {
+    pub fn update_crow_command(&mut self, command_id: Id, command: &str) {
+        if let Some(c) = self.crow_commands.commands.get_mut(&command_id) {
             *c = CrowCommand {
                 command: command.to_string(),
                 ..c.clone()
@@ -158,17 +185,35 @@ impl State {
         }
     }
 
+    pub fn normalize_scored_commands(commands: Vec<ScoredCommand>) -> ScoredCommands {
+        commands.into_iter().fold(HashMap::new(), |mut acc, c| {
+            acc.insert(c.command().id.clone(), c);
+            acc
+        })
+    }
+
+    pub fn denormalize_scored_commands(commands: &ScoredCommands) -> Vec<ScoredCommand> {
+        commands.values().cloned().collect()
+    }
+
+    pub fn scored_commands(&self) -> Vec<ScoredCommand> {
+        State::denormalize_scored_commands(&self.fuzz_result.commands())
+    }
+
     /// Set the state's fuzz result.
     pub fn set_fuzz_result(&mut self, fuzz_result: Vec<ScoredCommand>) {
-        self.fuzz_result = fuzz_result;
+        self.fuzz_result = FuzzResult {
+            commands: State::normalize_scored_commands(fuzz_result.clone()),
+            command_ids: fuzz_result.iter().map(|c| c.command().id.clone()).collect(),
+        };
     }
 
     /// Get a reference to the state's fuzz result.
     pub fn fuzz_result_or_all(&mut self) -> Vec<ScoredCommand> {
-        if !self.fuzz_result.is_empty() || !self.input.is_empty() {
-            self.fuzz_result.clone()
+        if !self.scored_commands().is_empty() || !self.input.is_empty() {
+            self.scored_commands()
         } else {
-            let fuzz_result = fuzzy_search_commands(self.commands(), "");
+            let fuzz_result = fuzzy_search_commands(self.crow_commands(), "");
             self.set_fuzz_result(fuzz_result.clone());
             fuzz_result
         }
@@ -182,7 +227,7 @@ impl State {
     /// Get a reference to the state's selected command.
     pub fn selected_command(&self) -> Option<&CrowCommand> {
         match &self.selected_command {
-            Some(id) => self.commands.get(id),
+            Some(id) => self.crow_commands.commands.get(id),
             None => None,
         }
     }
@@ -211,8 +256,8 @@ impl State {
     }
 
     /// Set the state's command ids.
-    pub fn set_command_ids(&mut self, command_ids: Vec<Id>) {
-        self.command_ids = command_ids;
+    pub fn set_crow_command_ids(&mut self, command_ids: Vec<Id>) {
+        self.crow_commands.command_ids = command_ids;
     }
 
     /// Set the state's detail scroll position.
@@ -226,7 +271,7 @@ impl State {
     }
 
     /// Checks if there are any commands at all inside the state
-    pub fn has_commands(&self) -> bool {
-        !self.commands.is_empty()
+    pub fn has_crow_commands(&self) -> bool {
+        !self.crow_commands.commands.is_empty()
     }
 }
