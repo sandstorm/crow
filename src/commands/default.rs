@@ -83,7 +83,7 @@ fn render(
 
         let inner_split_layout = rendering::inner_split_layout(layout[1]);
 
-        if state.has_commands() {
+        if state.has_crow_commands() {
             frame.render_stateful_widget(
                 rendering::command_list(commands),
                 inner_split_layout[0],
