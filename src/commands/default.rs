@@ -81,46 +81,46 @@ fn render(
 
         let commands = state.fuzz_result_or_all();
 
+        let inner_split_layout = rendering::inner_split_layout(layout[1]);
+
+        if state.has_commands() {
+            frame.render_stateful_widget(
+                rendering::command_list(commands),
+                inner_split_layout[0],
+                state.mut_command_list(),
+            );
+        } else {
+            frame.render_widget(empty_command_list(), inner_split_layout[0]);
+        }
+
+        if let Some(c) = state.selected_command() {
+            frame.render_widget(
+                rendering::command_detail(c, state.detail_scroll_position()),
+                inner_split_layout[1],
+            );
+        };
+
+        frame.render_widget(rendering::input(state.input()), layout[2]);
+
+        frame.set_cursor(
+            layout[2].x + UnicodeWidthStr::width(state.input().as_str()) as u16 + 3,
+            layout[2].y + 1,
+        );
+
         match state.active_menu_item() {
-            MenuItem::Find => {
-                let inner_split_layout = rendering::inner_split_layout(layout[1]);
-
-                if state.has_commands() {
-                    frame.render_stateful_widget(
-                        rendering::command_list(commands),
-                        inner_split_layout[0],
-                        state.mut_command_list(),
-                    );
-                } else {
-                    frame.render_widget(empty_command_list(), inner_split_layout[0]);
-                }
-
-                if let Some(c) = state.selected_command() {
-                    frame.render_widget(
-                        rendering::command_detail(c, state.detail_scroll_position()),
-                        inner_split_layout[1],
-                    );
-                };
-
-                frame.render_widget(rendering::input(state.input()), layout[2]);
-
-                frame.set_cursor(
-                    layout[2].x + UnicodeWidthStr::width(state.input().as_str()) as u16 + 3,
-                    layout[2].y + 1,
-                );
-            }
-
             MenuItem::Edit => {
                 if state.selected_command().is_some() {
-                    frame.render_widget(rendering::edit_command(), layout[1]);
+                    rendering::popup(frame, rendering::edit_command());
                 };
             }
 
             MenuItem::Delete => {
                 if let Some(c) = state.selected_command() {
-                    frame.render_widget(rendering::delete_command(c), layout[1]);
+                    rendering::popup(frame, rendering::delete_command(c));
                 };
             }
+
+            _ => {}
         }
     })?;
 
