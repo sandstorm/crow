@@ -1,5 +1,9 @@
+use std::io::Stdout;
+
+use tui::backend::CrosstermBackend;
 use tui::text::Text;
-use tui::widgets::Wrap;
+use tui::widgets::{Clear, Widget, Wrap};
+use tui::Frame;
 use tui::{layout::Rect, text::Spans};
 use tui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -36,6 +40,39 @@ pub fn inner_split_layout(rect: Rect) -> Vec<Rect> {
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
         .split(rect)
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
+}
+
+pub fn popup(frame: &mut Frame<CrosstermBackend<Stdout>>, widget: impl Widget) {
+    let popup_area = centered_rect(60, 40, frame.size());
+    frame.render_widget(Clear, popup_area); //this clears out the background
+    frame.render_widget(widget, popup_area);
 }
 
 /// Renders the deletion prompt for the currently selected command
