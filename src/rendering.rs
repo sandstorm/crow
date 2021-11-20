@@ -16,6 +16,7 @@ use tui::{
 use tui::{text::Span, widgets::Tabs};
 
 use crate::crow_db::CrowCommand;
+use crate::fuzzy::ScoredCommand;
 use crate::state::MenuItem;
 
 /// Base layout of the program
@@ -162,8 +163,8 @@ pub fn keybindings(active_menu_item: &MenuItem) -> Tabs<'static> {
 /// For selection to work this needs to be rendered inside a stateful_widget
 /// NOTE: Selection input is handled inside [crate::input]
 /// NOTE: The stateful_widget binding happens in [crate::commands::default::render]
-pub fn command_list(crow_commands: Vec<CrowCommand>) -> List<'static> {
-    let list_items: Vec<ListItem> = crow_commands.iter().map(ListItem::new).collect();
+pub fn command_list(commands: Vec<ScoredCommand>) -> List<'static> {
+    let list_items: Vec<ListItem> = commands.iter().map(ListItem::new).collect();
 
     List::new(list_items)
         .block(Block::default().title("Commands").borders(Borders::ALL))

@@ -1,4 +1,7 @@
-use crate::crow_db::{CrowDB, Id};
+use crate::{
+    crow_db::{CrowDB, Id},
+    fuzzy::{fuzzy_search_commands, ScoredCommand},
+};
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::crow_db::CrowCommand;
@@ -21,7 +24,7 @@ pub struct State {
     command_ids: Vec<Id>,
 
     /// List of filtered commands
-    fuzz_result: Vec<CrowCommand>,
+    fuzz_result: Vec<ScoredCommand>,
 
     /// The currently selected command
     selected_command: Option<Id>,
@@ -156,16 +159,18 @@ impl State {
     }
 
     /// Set the state's fuzz result.
-    pub fn set_fuzz_result(&mut self, fuzz_result: Vec<CrowCommand>) {
+    pub fn set_fuzz_result(&mut self, fuzz_result: Vec<ScoredCommand>) {
         self.fuzz_result = fuzz_result;
     }
 
     /// Get a reference to the state's fuzz result.
-    pub fn fuzz_result_or_all(&self) -> Vec<CrowCommand> {
+    pub fn fuzz_result_or_all(&mut self) -> Vec<ScoredCommand> {
         if !self.fuzz_result.is_empty() || !self.input.is_empty() {
             self.fuzz_result.clone()
         } else {
-            self.commands()
+            let fuzz_result = fuzzy_search_commands(self.commands(), "");
+            self.set_fuzz_result(fuzz_result.clone());
+            fuzz_result
         }
     }
 
@@ -192,7 +197,10 @@ impl State {
         // Therefore we retrieve our command by the index of the comman_list_state not from the
         // full list, but from the fuzzyed one. This works, because the command_list_state is rendered inside a stateful_widget which
         // also receives the same list of commands.
-        let selected_command = self.fuzz_result_or_all().get(index).map(|c| c.id.clone());
+        let selected_command = self
+            .fuzz_result_or_all()
+            .get(index)
+            .map(|c| c.command().id.clone());
 
         self.set_selected_command(selected_command);
     }
