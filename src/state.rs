@@ -10,6 +10,8 @@ use tui::widgets::ListState;
 type Commands = HashMap<Id, CrowCommand>;
 type ScoredCommands = HashMap<Id, ScoredCommand>;
 
+/// Crow commands are a normalized view of the commands that are stored inside
+/// the crow_db.json file.
 #[derive(Debug, Default)]
 struct CrowCommands {
     /// Lookup hashmap of commands
@@ -19,21 +21,17 @@ struct CrowCommands {
     command_ids: Vec<Id>,
 }
 
+/// The [FuzzResult] contains [CrowCommands] with scoring metadata
 #[derive(Debug, Default)]
-struct FuzzResult {
+pub struct FuzzResult {
     commands: ScoredCommands,
     command_ids: Vec<Id>,
 }
 
 impl FuzzResult {
     /// Get a reference to the fuzz result's commands.
-    fn commands(&self) -> &ScoredCommands {
+    pub fn commands(&self) -> &ScoredCommands {
         &self.commands
-    }
-
-    /// Get a reference to the fuzz result's command ids.
-    fn command_ids(&self) -> &[String] {
-        self.command_ids.as_ref()
     }
 }
 
@@ -224,8 +222,8 @@ impl State {
         self.selected_command = id;
     }
 
-    /// Get a reference to the state's selected command.
-    pub fn selected_command(&self) -> Option<&CrowCommand> {
+    /// Get a reference to the state's selected crow command.
+    pub fn selected_crow_command(&self) -> Option<&CrowCommand> {
         match &self.selected_command {
             Some(id) => self.crow_commands.commands.get(id),
             None => None,
@@ -273,5 +271,10 @@ impl State {
     /// Checks if there are any commands at all inside the state
     pub fn has_crow_commands(&self) -> bool {
         !self.crow_commands.commands.is_empty()
+    }
+
+    /// Get a reference to the state's fuzz result.
+    pub fn fuzz_result(&self) -> &FuzzResult {
+        &self.fuzz_result
     }
 }
