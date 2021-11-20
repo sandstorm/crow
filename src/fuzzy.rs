@@ -3,6 +3,8 @@ use tui::text::Text;
 
 use crate::crow_db::CrowCommand;
 
+/// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
+/// a list of matching indices.
 #[derive(Debug)]
 pub struct ScoredCommand {
     score: i64,
@@ -60,7 +62,7 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
     }
 
     let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-    let mut commands: Vec<ScoredCommand> = commands
+    let commands: Vec<ScoredCommand> = commands
         .into_iter()
         .map(|c| match matcher.fuzzy_indices(&c.match_str(), pattern) {
             Some((score, indices)) => ScoredCommand {
@@ -76,8 +78,10 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
         })
         .collect();
 
+    // We filter out any commands whose score is lower than 50
+    let mut commands: Vec<ScoredCommand> = commands.into_iter().filter(|c| c.score > 50).collect();
     commands.sort_by(|a, b| b.score.cmp(&a.score));
-    commands.into_iter().filter(|c| c.score > 0).collect()
+    commands
 }
 
 #[cfg(test)]

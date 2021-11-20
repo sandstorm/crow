@@ -174,16 +174,45 @@ pub fn command_list(commands: Vec<ScoredCommand>) -> List<'static> {
 }
 
 /// Handles the display of the command details (command + description) for the currently
-/// selected command.
-pub fn command_detail<'a>(selected_command: &CrowCommand, scroll_position: u16) -> Paragraph<'a> {
-    let mut detail = Text::styled(
-        selected_command.command.clone(),
-        Style::default().fg(Color::Cyan),
-    );
-    detail.extend(Text::styled(
-        format!("\n\n{}", selected_command.description.clone()),
-        Style::default().fg(Color::White),
+/// selected command. Character matches of the fuzzy search are being highlighted.
+pub fn command_detail<'a>(
+    selected_command: &CrowCommand,
+    scroll_position: u16,
+    highlight_indices: &[usize],
+) -> Paragraph<'a> {
+    let mut detail = Text::from(Spans::from(
+        selected_command
+            .command
+            .char_indices()
+            .map(|(index, char)| {
+                if highlight_indices.contains(&index) {
+                    Span::styled(char.to_string(), Style::default().fg(Color::Yellow))
+                } else {
+                    Span::styled(char.to_string(), Style::default().fg(Color::Cyan))
+                }
+            })
+            .collect::<Vec<Span>>(),
     ));
+
+    detail.extend(Text::raw("\n"));
+
+    detail.extend(Text::from(Spans::from(
+        selected_command
+            .description
+            .char_indices()
+            .map(|(index, char)| {
+                // Because our fuzzy search combines command + description we have to take the
+                // length of the command into account when we check if the current chars index is
+                // part of the matching indices. We also need to add two more characters because of
+                // the "\n" newline above!
+                if highlight_indices.contains(&{ index + selected_command.command.len() + 2 }) {
+                    Span::styled(char.to_string(), Style::default().fg(Color::Yellow))
+                } else {
+                    Span::styled(char.to_string(), Style::default().fg(Color::White))
+                }
+            })
+            .collect::<Vec<Span>>(),
+    )));
 
     Paragraph::new(detail)
         .style(Style::default().fg(Color::White))

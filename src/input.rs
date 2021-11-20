@@ -64,7 +64,7 @@ fn handle_delete(event: CEvent, state: &mut State) -> Result<(), Error> {
                 code: KeyCode::Char('y'),
                 modifiers: KeyModifiers::NONE,
             } => {
-                if let Some(c) = state.selected_command() {
+                if let Some(c) = state.selected_crow_command() {
                     // TODO revert control here:
                     // We should just make a call to our state which in turn should handle
                     // the database update.
@@ -106,7 +106,7 @@ fn handle_edit(
     event: CEvent,
     state: &mut State,
 ) -> Result<InputEvent, Error> {
-    if let Some(c) = state.selected_command() {
+    if let Some(c) = state.selected_crow_command() {
         if let CEvent::Key(key_event) = event {
             match key_event {
                 KeyEvent {
@@ -121,7 +121,7 @@ fn handle_edit(
                         .unwrap_or_else(|e| eject(&format!("Could not edit description. {}", e)));
                     state.update_crow_command_description(
                         command.id,
-                        &edited_description.unwrap_or_else(|| "".to_string()),
+                        &edited_description.unwrap_or(command.description),
                     );
                     state.write_commands_to_db();
 
@@ -139,7 +139,7 @@ fn handle_edit(
                         .unwrap_or_else(|e| eject(&format!("Could not edit command. {}", e)));
                     state.update_crow_command(
                         command.id,
-                        &edited_command.unwrap_or_else(|| "".to_string()),
+                        &edited_command.unwrap_or(command.command),
                     );
                     state.write_commands_to_db();
 
@@ -203,7 +203,7 @@ fn handle_find(
                     code: KeyCode::Enter,
                     modifiers: KeyModifiers::NONE,
                 } => {
-                    if let Some(c) = state.selected_command() {
+                    if let Some(c) = state.selected_crow_command() {
                         let mut ctx = ClipboardContext::new().unwrap_or_else(|e| {
                             eject(&format!("Could not create clipboard context. {}", e))
                         });

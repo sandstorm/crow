@@ -93,9 +93,15 @@ fn render(
             frame.render_widget(empty_command_list(), inner_split_layout[0]);
         }
 
-        if let Some(c) = state.selected_command() {
+        if let Some(c) = state.selected_crow_command() {
+            let highlight_indices = if let Some(c) = state.fuzz_result().commands().get(&c.id) {
+                c.indices()
+            } else {
+                &[]
+            };
+
             frame.render_widget(
-                rendering::command_detail(c, state.detail_scroll_position()),
+                rendering::command_detail(c, state.detail_scroll_position(), highlight_indices),
                 inner_split_layout[1],
             );
         };
@@ -109,13 +115,13 @@ fn render(
 
         match state.active_menu_item() {
             MenuItem::Edit => {
-                if state.selected_command().is_some() {
+                if state.selected_crow_command().is_some() {
                     rendering::popup(frame, rendering::edit_command());
                 };
             }
 
             MenuItem::Delete => {
-                if let Some(c) = state.selected_command() {
+                if let Some(c) = state.selected_crow_command() {
                     rendering::popup(frame, rendering::delete_command(c));
                 };
             }
