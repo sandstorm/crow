@@ -1,5 +1,6 @@
 use crate::commands::default::InputWorkerEvent;
-use crate::crow_db::CrowDB;
+use crate::crow_commands::Commands;
+use crate::crow_db::CrowDBConnection;
 use crate::eject;
 use crate::events::{CliEvent, InputEvent};
 use crate::fuzzy::fuzzy_search_commands;
@@ -65,21 +66,21 @@ fn handle_delete(event: CEvent, state: &mut State) -> Result<(), Error> {
                 modifiers: KeyModifiers::NONE,
             } => {
                 if let Some(c) = state.selected_crow_command() {
-                    // TODO revert control here:
-                    // We should just make a call to our state which in turn should handle
-                    // the database update.
-                    match CrowDB::remove_command(c) {
-                        Ok(commands) => {
-                            state.set_crow_command_ids(
-                                commands.iter().map(|c| c.id.clone()).collect(),
-                            );
-                            state.set_crow_commands(State::normalize_crow_commands(commands));
-                            state.set_fuzz_result(vec![]);
-                            state.set_input("".to_string());
-                            state.set_active_menu_item(MenuItem::Find);
-                        }
-                        Err(e) => eject(&format!("Could not remove command: {}", e)),
-                    }
+                    let connection = CrowDBConnection::new(state.db_file_path().clone())
+                        .remove_command(c)
+                        .write();
+
+                    let commands = connection.commands();
+
+                    state
+                        .crow_commands_mut()
+                        .set_command_ids(commands.iter().map(|c| c.id.clone()).collect());
+                    state
+                        .crow_commands_mut()
+                        .set_commands(Commands::normalize(&commands));
+                    state.set_fuzz_result(vec![]);
+                    state.set_input("".to_string());
+                    state.set_active_menu_item(MenuItem::Find);
                 }
             }
 
@@ -119,7 +120,7 @@ fn handle_edit(
                     let edited_description = Editor::new()
                         .edit(&command.description)
                         .unwrap_or_else(|e| eject(&format!("Could not edit description. {}", e)));
-                    state.update_crow_command_description(
+                    state.crow_commands_mut().commands_mut().update_description(
                         command.id,
                         &edited_description.unwrap_or(command.description),
                     );
@@ -137,10 +138,10 @@ fn handle_edit(
                     let edited_command = Editor::new()
                         .edit(&command.command)
                         .unwrap_or_else(|e| eject(&format!("Could not edit command. {}", e)));
-                    state.update_crow_command(
-                        command.id,
-                        &edited_command.unwrap_or(command.command),
-                    );
+                    state
+                        .crow_commands_mut()
+                        .commands_mut()
+                        .update_command(command.id, &edited_command.unwrap_or(command.command));
                     state.write_commands_to_db();
 
                     resume_input_thread(main_tx);
@@ -227,7 +228,12 @@ fn handle_find(
                 } => {
                     state.mut_input().push(c);
                     state.set_fuzz_result(fuzzy_search_commands(
-                        state.crow_commands(),
+                        state
+                            .crow_commands()
+                            .commands()
+                            .denormalize()
+                            .cloned()
+                            .collect(),
                         state.input(),
                     ));
 
@@ -243,7 +249,12 @@ fn handle_find(
                     state.mut_input().pop();
 
                     state.set_fuzz_result(fuzzy_search_commands(
-                        state.crow_commands(),
+                        state
+                            .crow_commands()
+                            .commands()
+                            .denormalize()
+                            .cloned()
+                            .collect(),
                         state.input(),
                     ));
 

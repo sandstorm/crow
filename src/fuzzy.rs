@@ -1,47 +1,30 @@
+use std::cmp::Reverse;
+
 use fuzzy_matcher::FuzzyMatcher;
-use tui::text::Text;
 
-use crate::crow_db::CrowCommand;
+use crate::{
+    crow_commands::{CrowCommand, Id},
+    scored_commands::{ScoredCommand, ScoredCommands},
+};
 
-/// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
-/// a list of matching indices.
-#[derive(Debug)]
-pub struct ScoredCommand {
-    score: i64,
-    indices: Vec<usize>,
-    command: CrowCommand,
+/// The [FuzzResult] contains [CrowCommands] with scoring metadata
+#[derive(Debug, Default)]
+pub struct FuzzResult {
+    commands: ScoredCommands,
+    command_ids: Vec<Id>,
 }
 
-impl Clone for ScoredCommand {
-    fn clone(&self) -> ScoredCommand {
-        ScoredCommand {
-            score: self.score,
-            command: self.command.clone(),
-            indices: self.indices.clone(),
+impl FuzzResult {
+    pub fn new(commands: ScoredCommands, command_ids: Vec<Id>) -> Self {
+        Self {
+            commands,
+            command_ids,
         }
     }
-}
 
-impl From<&ScoredCommand> for Text<'_> {
-    fn from(cmd: &ScoredCommand) -> Self {
-        Text::from(cmd.command().command.clone())
-    }
-}
-
-impl ScoredCommand {
-    /// Get a reference to the scored command's score.
-    pub fn score(&self) -> i64 {
-        self.score
-    }
-
-    /// Get a reference to the scored command's indices.
-    pub fn indices(&self) -> &[usize] {
-        self.indices.as_ref()
-    }
-
-    /// Get a reference to the scored command's command.
-    pub fn command(&self) -> &CrowCommand {
-        &self.command
+    /// Get a reference to the fuzz result's commands.
+    pub fn commands(&self) -> &ScoredCommands {
+        &self.commands
     }
 }
 
@@ -53,34 +36,21 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
     if pattern.is_empty() {
         return commands
             .into_iter()
-            .map(|c| ScoredCommand {
-                score: 1,
-                indices: vec![],
-                command: c,
-            })
+            .map(|c| ScoredCommand::new(1, vec![], c))
             .collect();
     }
 
     let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-    let commands: Vec<ScoredCommand> = commands
+    let mut commands: Vec<ScoredCommand> = commands
         .into_iter()
         .map(|c| match matcher.fuzzy_indices(&c.match_str(), pattern) {
-            Some((score, indices)) => ScoredCommand {
-                score,
-                indices,
-                command: c,
-            },
-            None => ScoredCommand {
-                score: 0,
-                indices: vec![],
-                command: c,
-            },
+            Some((score, indices)) => ScoredCommand::new(score, indices, c),
+            None => ScoredCommand::new(0, vec![], c),
         })
+        .filter(|c| c.score() > 50)
         .collect();
 
-    // We filter out any commands whose score is lower than 50
-    let mut commands: Vec<ScoredCommand> = commands.into_iter().filter(|c| c.score > 50).collect();
-    commands.sort_by(|a, b| b.score.cmp(&a.score));
+    commands.sort_by_key(|c| Reverse(c.score()));
     commands
 }
 

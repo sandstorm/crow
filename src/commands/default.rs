@@ -1,6 +1,8 @@
+use crate::crow_db::FilePath;
 use crate::events::{CliEvent, InputEvent};
 use crate::state::{MenuItem, State};
 use crate::{eject, input};
+use clap::ArgMatches;
 use crossterm::event::EnableMouseCapture;
 use crossterm::execute;
 
@@ -139,13 +141,19 @@ fn render(
 fn main_loop(
     main_tx: Sender<InputWorkerEvent>,
     input_worker_rx: Receiver<CliEvent<CEvent>>,
+    arg_matches: Option<&ArgMatches>,
 ) -> Result<(), Error> {
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let mut state = State::new();
+    let file_path = match arg_matches {
+        Some(matches) => FilePath::new(matches.value_of("db_path"), matches.value_of("db_name")),
+        None => FilePath::default(),
+    };
+
+    let mut state = State::new(Some(file_path));
 
     loop {
         render(&mut terminal, &mut state).expect("Can render");
@@ -161,7 +169,7 @@ fn main_loop(
 }
 
 /// Default command when running 'crow' without arguments
-pub fn run() -> Result<(), Error> {
+pub fn run(arg_matches: Option<&ArgMatches>) -> Result<(), Error> {
     enable_raw_mode().expect("Can run in raw mode");
     execute!(io::stdout(), EnableMouseCapture)?;
 
@@ -169,7 +177,7 @@ pub fn run() -> Result<(), Error> {
     let (main_tx, main_rx) = mpsc::channel();
 
     poll_input_thread(input_worker_tx, main_rx);
-    main_loop(main_tx, input_worker_rx).expect("Main loop runs");
+    main_loop(main_tx, input_worker_rx, arg_matches).expect("Main loop runs");
 
     Ok(())
 }
