@@ -1,204 +1,245 @@
+//! Abstraction of read and write processes to the crow configuration file.
+
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt::{self, Display},
     fs::{create_dir_all, read_to_string, write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use dirs::home_dir;
 
-use crate::eject;
+use crate::{crow_commands::CrowCommand, eject};
 
-// TODO maybe change this so that it uses the newtype pattern
-pub type Id = String;
-
-#[derive(Serialize, Deserialize)]
-pub struct CrowCommand {
-    pub id: Id,
-    pub command: String,
-    pub description: String,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Commands {
+    commands: Vec<CrowCommand>,
 }
 
-impl CrowCommand {
-    /// Creates a single string from the command and the description which can
-    /// be used to be matched agains (e.g. for fuzzy searching).
-    pub fn match_str(&self) -> String {
-        format!("{}: {}", &self.command, &self.description)
+impl Default for Commands {
+    fn default() -> Self {
+        Self { commands: vec![] }
     }
 }
 
-impl Clone for CrowCommand {
-    fn clone(&self) -> CrowCommand {
-        CrowCommand {
-            id: self.id.clone(),
-            command: self.command.clone(),
-            description: self.description.clone(),
+impl Commands {
+    /// Get a reference to the commands's commands.
+    fn commands(&self) -> &[CrowCommand] {
+        self.commands.as_ref()
+    }
+
+    /// Set the commands's commands.
+    fn set_commands(&mut self, commands: Vec<CrowCommand>) {
+        self.commands = commands;
+    }
+
+    /// Get a mutable reference to the commands's commands.
+    fn commands_mut(&mut self) -> &mut Vec<CrowCommand> {
+        &mut self.commands
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FilePath(PathBuf);
+
+impl Default for FilePath {
+    fn default() -> Self {
+        Self(Self::create_path_and_intermediate_dirs(None, None))
+    }
+}
+
+impl FilePath {
+    const DEFAULT_CONFIG_FILE: &'static str = "crow_db.json";
+
+    pub fn new(path: Option<&str>, file_name: Option<&str>) -> Self {
+        let path_buffer = match path {
+            Some(p) => {
+                let mut path_buffer = PathBuf::new();
+                path_buffer.push(shellexpand::tilde(p).as_ref());
+                Some(path_buffer)
+            }
+            None => None,
+        };
+
+        Self(Self::create_path_and_intermediate_dirs(
+            path_buffer,
+            file_name,
+        ))
+    }
+
+    pub fn as_path(&self) -> &Path {
+        self.0.as_path()
+    }
+
+    pub fn to_str(&self) -> Option<&str> {
+        self.0.to_str()
+    }
+
+    /// Creates a path buffer for a local config path inside the users home directory
+    /// Typically this path is `$HOME/.config/crow/` on UNIX systems
+    ///
+    /// # Panics
+    ///
+    /// If this function is somehow unable to either find the home directory or
+    /// create the full path, it will panic.
+    fn create_path_and_intermediate_dirs(
+        path_buffer: Option<PathBuf>,
+        file: Option<&str>,
+    ) -> PathBuf {
+        let mut path_buffer = path_buffer.unwrap_or_else(Self::default_path);
+
+        if !path_buffer.as_path().exists() {
+            match path_buffer.to_str() {
+                Some(str) => {
+                    println!("Creating config path: {}", str);
+                }
+                None => eject("Could not parse config path to string"),
+            }
+
+            if let Err(error) = create_dir_all(path_buffer.as_path()) {
+                eject(&format!(
+                    "Could not create directories up to config path. {}",
+                    error
+                ));
+            };
+        }
+
+        path_buffer.push(file.unwrap_or(Self::DEFAULT_CONFIG_FILE));
+        path_buffer
+    }
+
+    fn default_path() -> PathBuf {
+        let mut path_buffer = PathBuf::new();
+        let home_dir = match home_dir() {
+            Some(dir) => dir,
+            None => eject("Could not retrieve home directory. {}"),
+        };
+        let home_dir = match home_dir.to_str() {
+            Some(str) => str,
+            None => eject("Could not parse home directory into string"),
+        };
+
+        path_buffer.push(format!("{}/.config/crow/", home_dir));
+        path_buffer
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CrowDBConnection {
+    commands: Commands,
+    path: FilePath,
+}
+
+impl Default for CrowDBConnection {
+    fn default() -> Self {
+        Self {
+            commands: Commands::default(),
+            path: FilePath::default(),
         }
     }
 }
 
-impl fmt::Debug for CrowCommand {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CrowCommand")
-            .field("id", &self.id)
-            .field("command", &self.command)
-            .field("description", &self.description)
-            .finish()
+impl CrowDBConnection {
+    pub fn new(file_path: FilePath) -> Self {
+        Self::connect_and_initialize_file_if_not_exists(file_path)
     }
-}
 
-impl Display for CrowCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Id: {}, Command: {}, Description: {}",
-            self.id, self.command, self.description
-        )
-    }
-}
-
-impl PartialEq for CrowCommand {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CrowDB {
-    commands: Vec<CrowCommand>,
-}
-
-impl CrowDB {
-    /// Initializes the default crow database json file (typically at `$HOME/.config/crow/crow_db.json` on UNIX systems).
+    /// Initializes the crow database json file if it does not exist (typically at `$HOME/.config/crow/crow_db.json` on UNIX systems).
     ///
     /// # Panics
     /// This function may panic for various reasons:
     /// * if paths could not be resolved
     /// * if the file could not be written
     /// * if the default content of the file could not be parsed to JSON
-    fn initialize_file() {
-        let file_path_buffer = get_db_path();
-        if !file_path_buffer.as_path().exists() {
-            match file_path_buffer.to_str() {
-                Some(file) => {
-                    println!("Creating config file: {}", file);
+    fn connect_and_initialize_file_if_not_exists(file_path: FilePath) -> Self {
+        if !file_path.as_path().exists() {
+            match file_path.to_str() {
+                Some(file_path) => {
+                    println!("Creating config file: {}", file_path);
                 }
-                None => eject("Could not initialize crow config file"),
+                None => eject("Could not parse path to string"),
             }
 
-            let crow_db = CrowDB { commands: vec![] };
-            crow_db.write();
+            let connection = Self {
+                commands: Commands::default(),
+                path: file_path,
+            };
+            connection.write();
+
+            return connection;
+        }
+
+        Self {
+            commands: Commands::default(),
+            path: file_path,
         }
     }
 
     /// Returns a list reference to the commands in the database
-    pub fn commands(&self) -> &Vec<CrowCommand> {
-        &self.commands
+    pub fn commands(&self) -> &[CrowCommand] {
+        self.commands.commands()
     }
 
     /// Writes all commands which are currently inside the memory database into
     /// the crow_db file.
-    pub fn write(&self) {
-        let file_path_buffer = get_db_path();
-
-        let crow_db_json = match serde_json::to_string(&self) {
+    pub fn write(&self) -> Self {
+        let crow_db_json = match serde_json::to_string(&self.commands) {
             Ok(json) => json,
             Err(error) => eject(&format!("Could not parse to JSON. {}", error)),
         };
 
-        if let Err(error) = write(file_path_buffer.as_path(), crow_db_json) {
-            eject(&format!("Cloud not write database file. {}", error));
+        if let Err(error) = write(self.path().as_path(), crow_db_json) {
+            eject(&format!("Could not write database file. {}", error));
         };
+
+        self.clone()
     }
 
-    /// Adds a command to the in memory database and saves the in memory database
-    /// to the database json file.
-    /// TODO we should probably handle the "in memory" part in [crate::state] instead and just
-    /// trigger a write from the state.
-    pub fn add_command(command: CrowCommand) -> Result<(), &'static str> {
-        let mut db = CrowDB::read();
-        db.commands.push(command);
-        db.write();
+    /// Adds a command to the in memory database.
+    /// The in memory database is being read from file before the command is added.
+    /// [self.write()] needs to be called in order to save to the json file.
+    pub fn add_command(&mut self, command: CrowCommand) -> Self {
+        let mut connection = self.read();
+        connection.commands.commands_mut().push(command);
 
-        Ok(())
+        connection
     }
 
-    /// Removes a command from the in memory database and saves the in memory database
-    /// to the database json file.
-    /// TODO we should probably handle the "in memory" part in [crate::state] instead and just
-    /// trigger a write from the state.
-    pub fn remove_command(command: &CrowCommand) -> Result<Vec<CrowCommand>, &'static str> {
-        let mut db = CrowDB::read();
-        let filtered: Vec<CrowCommand> = db
-            .commands()
-            .iter()
-            .filter(|c| *c != command)
-            .cloned()
-            .collect();
+    /// Removes a command from the in memory database.
+    /// The in memory database is being read from file before the command is removed.
+    /// [self.write()] needs to be called in order to save to the json file.
+    pub fn remove_command(&mut self, command: &CrowCommand) -> Self {
+        let mut connection = self.read();
 
-        db.set_commands(filtered.clone());
-        db.write();
+        connection
+            .commands
+            .commands_mut()
+            .retain(|c| c.id != command.id);
 
-        Ok(filtered)
+        connection
     }
 
-    /// Reads the database json file, parses the json and returns an in-memory [CrowDB]
-    pub fn read() -> CrowDB {
-        CrowDB::initialize_file();
-
-        let db_path = get_db_path();
-
-        let db_file = read_to_string(db_path.as_path())
+    /// Reads the database json file, parses the json and returns an in-memory [CrowDBConnection]
+    pub fn read(&self) -> Self {
+        let db_file = read_to_string(self.path().as_path())
             .expect("Error: crow_db.json file has not been initialized!");
 
-        let crow_db: CrowDB =
+        let commands: Commands =
             serde_json::from_str(&db_file).expect("Error: unable to parse crow_db.json file!");
 
-        crow_db
+        CrowDBConnection {
+            commands,
+            path: self.path.clone(),
+        }
     }
 
     /// Set the crow db's commands.
-    pub fn set_commands(&mut self, commands: Vec<CrowCommand>) {
-        self.commands = commands;
-    }
-}
-
-/// Creates a path buffer for a local config path inside the users home directory
-/// Typically this path is `$HOME/.config/crow/` on UNIX systems
-///
-/// # Panics
-///
-/// If this function is somehow unable to either find the home directory or
-/// create the full path, it will panic.
-fn get_db_path() -> PathBuf {
-    let mut path_buffer = PathBuf::new();
-    let home_dir = match home_dir() {
-        Some(dir) => dir,
-        None => eject("Could not retrieve home directory. {}"),
-    };
-    let home_dir = match home_dir.to_str() {
-        Some(str) => str,
-        None => eject("Could not parse home directory into string"),
-    };
-
-    path_buffer.push(format!("{}/.config/crow/", home_dir));
-
-    if !path_buffer.as_path().exists() {
-        match path_buffer.to_str() {
-            Some(str) => {
-                println!("Creating config path: {}", str);
-            }
-            None => eject("Could not parse config path to string"),
-        }
-
-        if let Err(error) = create_dir_all(path_buffer.as_path()) {
-            eject(&format!(
-                "Could not create directories up to config path. {}",
-                error
-            ));
-        };
+    pub fn set_commands(&mut self, commands: Vec<CrowCommand>) -> Self {
+        self.commands.set_commands(commands);
+        self.clone()
     }
 
-    path_buffer.push("crow_db.json");
-    path_buffer
+    /// Get a reference to the crow dbconnection's path.
+    pub fn path(&self) -> &FilePath {
+        &self.path
+    }
 }

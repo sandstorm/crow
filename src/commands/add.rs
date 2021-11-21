@@ -1,15 +1,21 @@
+use clap::ArgMatches;
 use crossterm::style::Stylize;
 use dialoguer::{Confirm, Editor};
 use nanoid::nanoid;
 
-use crate::crow_db::{CrowCommand, CrowDB};
+use crate::{
+    crow_commands::CrowCommand,
+    crow_db::{CrowDBConnection, FilePath},
+};
 
-use std::io::{self, Error};
+use std::io::Error;
 
 /// Uses the command given by the user as CLI argument and prompts to save it.
 /// Upon save the user is asked to provided a description.
 /// When the command is saved, it is written to the crow_db json file.
-pub fn run(command: &str) -> Result<(), Error> {
+pub fn run(arg_matches: &ArgMatches) -> Result<(), Error> {
+    let command = arg_matches.value_of("command").expect("Has command");
+
     let save_prompt = format!("Do you want to save command: {}?", command.cyan());
     let should_save = Confirm::new()
         .with_prompt(save_prompt)
@@ -37,11 +43,15 @@ pub fn run(command: &str) -> Result<(), Error> {
         description,
     };
 
-    match CrowDB::add_command(new_command) {
-        Ok(()) => Ok(()),
-        Err(error) => {
-            let err = format!("Error: Could not save command! Reason: {}", error);
-            Err(Error::new(io::ErrorKind::Other, err))
-        }
+    if let Some(p) = arg_matches.value_of("db_path") {
+        println!("{}", p);
     }
+
+    CrowDBConnection::new(FilePath::new(
+        arg_matches.value_of("db_path"),
+        arg_matches.value_of("db_name"),
+    ))
+    .add_command(new_command)
+    .write();
+    Ok(())
 }

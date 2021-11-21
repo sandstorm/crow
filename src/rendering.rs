@@ -15,8 +15,8 @@ use tui::{
 };
 use tui::{text::Span, widgets::Tabs};
 
-use crate::crow_db::CrowCommand;
-use crate::fuzzy::ScoredCommand;
+use crate::crow_commands::CrowCommand;
+use crate::scored_commands::ScoredCommand;
 use crate::state::MenuItem;
 
 /// Base layout of the program
