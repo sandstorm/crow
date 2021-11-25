@@ -1,6 +1,6 @@
 [package]
 name = "crow"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Theo Salzmann <theo.salzmann@sandstorm.de>"]
 edition = "2018"
 description = "crow (command row) is a CLI tool to help you memorize CLI commands by saving them with a unique description. Whenever you can't remember a certain command you can then use crow to fuzzy search commands by their description. (NOTE: this tool currently only works on UNIX systems!)"

@@ -13,7 +13,7 @@ mod rendering;
 mod scored_commands;
 mod state;
 
-use crossterm::terminal::disable_raw_mode;
+use crossterm::{event::DisableMouseCapture, execute, terminal::disable_raw_mode};
 use std::io::Error;
 
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg, SubCommand};
@@ -95,6 +95,7 @@ pub fn run() -> Result<(), Error> {
 /// program.
 pub fn eject(reason: &str) -> ! {
     disable_raw_mode().unwrap();
+    execute!(std::io::stdout(), DisableMouseCapture).unwrap();
 
     eprintln!("{}", reason);
     std::process::exit(-1);
