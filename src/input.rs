@@ -7,8 +7,10 @@ use crate::fuzzy::fuzzy_search_commands;
 use crate::state::{MenuItem, State};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use crossterm::event::{
-    Event as CEvent, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind,
+    DisableMouseCapture, Event as CEvent, KeyCode, KeyEvent, KeyModifiers, MouseEvent,
+    MouseEventKind,
 };
+use crossterm::execute;
 use crossterm::style::Stylize;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use dialoguer::Editor;
@@ -303,6 +305,7 @@ fn quit(
     disable_raw_mode()?;
     terminal.clear()?;
     terminal.show_cursor()?;
+    execute!(std::io::stdout(), DisableMouseCapture)?;
 
     println!("{}", msg.unwrap_or(""));
 
