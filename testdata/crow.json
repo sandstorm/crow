@@ -1,0 +1,14 @@
+{
+  "commands": [
+    {
+      "id": "test_command_1",
+      "command": "echo 'hi from db'",
+      "description": "This is a test command"
+    },
+    {
+      "id": "test_command_2",
+      "command": "",
+      "description": ""
+    }
+  ]
+}

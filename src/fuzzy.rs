@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// The [FuzzResult] contains [CrowCommands] with scoring metadata
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct FuzzResult {
     commands: ScoredCommands,
     command_ids: Vec<Id>,
@@ -25,6 +25,11 @@ impl FuzzResult {
     /// Get a reference to the fuzz result's commands.
     pub fn commands(&self) -> &ScoredCommands {
         &self.commands
+    }
+
+    /// Get a reference to the fuzz result's command ids.
+    pub fn _command_ids(&self) -> &[String] {
+        self.command_ids.as_ref()
     }
 }
 
@@ -56,15 +61,59 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    #[ignore = "not yet implemented"]
-    fn dont_error_on_empty_command_list() {}
+    use crate::{crow_commands::CrowCommand, scored_commands::ScoredCommand};
+
+    use super::fuzzy_search_commands;
 
     #[test]
-    #[ignore = "not yet implemented"]
-    fn return_full_list_for_empty_pattern() {}
+    fn dont_error_on_empty_command_list() {
+        let result = fuzzy_search_commands(vec![], "test");
+        let expected: Vec<ScoredCommand> = vec![];
+        assert_eq!(expected, result);
+    }
 
     #[test]
-    #[ignore = "not yet implemented"]
-    fn return_matches_by_score() {}
+    fn return_full_list_for_empty_pattern() {
+        let command = CrowCommand {
+            id: "test1".to_string(),
+            command: "echo 'hi'".to_string(),
+            description: "test command".to_string(),
+        };
+
+        let result = fuzzy_search_commands(vec![command.clone()], "");
+
+        let scored_command = ScoredCommand::new(1, vec![], command);
+        let expected: Vec<ScoredCommand> = vec![scored_command];
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn return_matches_by_score() {
+        let command1 = CrowCommand {
+            id: "test1".to_string(),
+            command: "echo 'hi'".to_string(),
+            description: "test command".to_string(),
+        };
+
+        let command2 = CrowCommand {
+            id: "test2".to_string(),
+            command: "e c something o".to_string(),
+            description: "test command".to_string(),
+        };
+
+        let command3 = CrowCommand {
+            id: "test3".to_string(),
+            command: "find".to_string(),
+            description: "test command".to_string(),
+        };
+
+        let result =
+            fuzzy_search_commands(vec![command1.clone(), command2.clone(), command3], "echo");
+
+        let scored_command1 = ScoredCommand::new(91, vec![0, 1, 2, 3], command1);
+        let scored_command2 = ScoredCommand::new(75, vec![0, 2, 9, 14], command2);
+
+        let expected: Vec<ScoredCommand> = vec![scored_command1, scored_command2];
+        assert_eq!(expected, result);
+    }
 }

@@ -19,6 +19,9 @@ use crate::crow_commands::CrowCommand;
 use crate::scored_commands::ScoredCommand;
 use crate::state::MenuItem;
 
+// TODO most (but not all) of the Paragraphs which are annotated with 'static lifetime
+// should probably use a proper lifetime as their parameters aren't actually static.
+
 /// Base layout of the program
 pub fn layout(rect: Rect) -> Vec<Rect> {
     Layout::default()

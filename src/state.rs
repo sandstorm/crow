@@ -24,7 +24,7 @@ pub struct State {
     fuzz_result: FuzzResult,
 
     /// The currently selected command
-    selected_command: Option<Id>,
+    selected_command_id: Option<Id>,
 
     /// The currently selected menu item which determines in what mode
     /// crow is in
@@ -62,8 +62,8 @@ impl Default for MenuItem {
 impl State {
     /// Initializes the default state by filling most of the state with default
     /// values, but also reading and normalizing all commands from the crow_db file.
-    pub fn new(db_file_path: Option<FilePath>) -> State {
-        let mut state: State = Default::default();
+    pub fn new(db_file_path: Option<FilePath>) -> Self {
+        let mut state: State = Self::default();
 
         if let Some(path) = db_file_path {
             state.set_db_file_path(path);
@@ -71,9 +71,9 @@ impl State {
 
         // TODO expose error handling and use [eject] where possible
         let commands = CrowDBConnection::new(state.db_file_path.clone())
-            .read()
             .commands()
             .to_vec();
+
         state
             .crow_commands
             .set_command_ids(commands.iter().map(|c| c.id.clone()).collect());
@@ -81,6 +81,7 @@ impl State {
         state
             .crow_commands_mut()
             .set_commands(Commands::normalize(&commands));
+
         state.select_command(0);
 
         state
@@ -130,10 +131,13 @@ impl State {
     }
 
     /// Set the state's fuzz result.
-    pub fn set_fuzz_result(&mut self, fuzz_result: Vec<ScoredCommand>) {
+    pub fn set_fuzz_result(&mut self, scored_commands: Vec<ScoredCommand>) {
         self.fuzz_result = FuzzResult::new(
-            ScoredCommands::normalize(&fuzz_result),
-            fuzz_result.iter().map(|c| c.command().id.clone()).collect(),
+            ScoredCommands::normalize(&scored_commands),
+            scored_commands
+                .iter()
+                .map(|c| c.command().id.clone())
+                .collect(),
         );
     }
 
@@ -160,13 +164,13 @@ impl State {
     }
 
     /// Set the state's selected command.
-    pub fn set_selected_command(&mut self, id: Option<Id>) {
-        self.selected_command = id;
+    pub fn set_selected_command_id(&mut self, id: Option<Id>) {
+        self.selected_command_id = id;
     }
 
     /// Get a reference to the state's selected crow command.
     pub fn selected_crow_command(&self) -> Option<&CrowCommand> {
-        match &self.selected_command {
+        match &self.selected_command_id {
             Some(id) => self.crow_commands.commands().get(id),
             None => None,
         }
@@ -182,12 +186,12 @@ impl State {
         // Therefore we retrieve our command by the index of the comman_list_state not from the
         // full list, but from the fuzzyed one. This works, because the command_list_state is rendered inside a stateful_widget which
         // also receives the same list of commands.
-        let selected_command = self
+        let selected_command_id = self
             .fuzz_result_or_all()
             .get(index)
             .map(|c| c.command().id.clone());
 
-        self.set_selected_command(selected_command);
+        self.set_selected_command_id(selected_command_id);
     }
 
     /// Set the state's input.
@@ -233,5 +237,162 @@ impl State {
     /// Set the state's db file path.
     pub fn set_db_file_path(&mut self, db_file_path: FilePath) {
         self.db_file_path = db_file_path;
+    }
+
+    /// Get a reference to the state's selected command id.
+    pub fn _selected_command_id(&self) -> Option<&String> {
+        self.selected_command_id.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use nanoid::nanoid;
+
+    use crate::{
+        crow_commands::{Commands, CrowCommand, CrowCommands, Id},
+        crow_db::FilePath,
+        scored_commands::{ScoredCommand, ScoredCommands},
+    };
+
+    use super::State;
+
+    #[test]
+    fn initializes_with_correct_data() {
+        let file_path = FilePath::new(Some("./testdata"), Some("crow.json"));
+
+        let state = State::new(Some(file_path));
+
+        assert_eq!(state.input(), "");
+        assert_eq!(&**state.db_file_path(), "./testdata/crow.json");
+
+        assert_eq!(state.detail_scroll_position(), 0);
+        assert_eq!(state.has_crow_commands(), true);
+        assert_eq!(state.command_list_state().selected().unwrap(), 0);
+    }
+
+    #[test]
+    fn writes_updated_state_to_db() {
+        let file_path = FilePath::new(Some("./testdata"), Some("crow_tmp.json"));
+
+        let mut state = State::new(Some(file_path.clone()));
+
+        let crow_command = CrowCommand {
+            id: "test_command_1".to_string(),
+            command: "echo 'hi from db'".to_string(),
+            description: "This is a test command".to_string(),
+        };
+        let commands = [crow_command];
+        let command_ids: Vec<Id> = vec!["test_command_1".to_string()];
+        let crow_commands = CrowCommands::_new(Commands::normalize(&commands), command_ids);
+        *state.crow_commands_mut() = crow_commands.clone();
+
+        // Assert that current state holds correct commands
+        assert_eq!(state.crow_commands(), &crow_commands);
+
+        state.write_commands_to_db();
+
+        // Assert that new state which also accesses the file holds the correct
+        // commands
+        let new_state = State::new(Some(file_path));
+
+        assert_eq!(new_state.crow_commands(), &crow_commands);
+
+        std::fs::remove_file("./testdata/crow_tmp.json").unwrap();
+    }
+
+    #[test]
+    #[ignore = "FIXME arbitrary order of commands because of denormalization"]
+    fn correctly_selects_command() {
+        let file_path = FilePath::new(Some("./testdata"), Some("crow.json"));
+
+        let mut state = State::new(Some(file_path));
+
+        assert_eq!(state.command_list_state().selected(), Some(0));
+        assert_eq!(
+            state._selected_command_id(),
+            Some(&"test_command_1".to_string())
+        );
+
+        state.select_command(1);
+
+        assert_eq!(state.command_list_state().selected(), Some(1));
+        assert_eq!(
+            state._selected_command_id(),
+            Some(&"test_command_2".to_string())
+        );
+    }
+
+    #[test]
+    fn correctly_sets_crow_commands() {
+        let file_path = FilePath::new(Some("./testdata"), Some("crow.json"));
+
+        let state = State::new(Some(file_path));
+
+        let crow_command_1 = CrowCommand {
+            id: "test_command_1".to_string(),
+            command: "echo 'hi from db'".to_string(),
+            description: "This is a test command".to_string(),
+        };
+        let crow_command_2 = CrowCommand {
+            id: "test_command_2".to_string(),
+            command: "".to_string(),
+            description: "".to_string(),
+        };
+        let crow_commands = [crow_command_1, crow_command_2];
+        let crow_command_ids: Vec<Id> =
+            vec!["test_command_1".to_string(), "test_command_2".to_string()];
+        let expected = CrowCommands::_new(Commands::normalize(&crow_commands), crow_command_ids);
+
+        assert_eq!(state.crow_commands(), &expected);
+    }
+
+    #[test]
+    fn returns_denormalized_fuzz_result_if_exists() {
+        let file_path = FilePath::new(Some("./testdata"), Some("crow.json"));
+
+        let state = State::new(Some(file_path));
+
+        let crow_command_1 = CrowCommand {
+            id: "test_command_1".to_string(),
+            command: "echo 'hi from db'".to_string(),
+            description: "This is a test command".to_string(),
+        };
+        let crow_command_2 = CrowCommand {
+            id: "test_command_2".to_string(),
+            command: "".to_string(),
+            description: "".to_string(),
+        };
+
+        let scored_commands = ScoredCommands::normalize(&[
+            ScoredCommand::new(1, vec![], crow_command_1),
+            ScoredCommand::new(1, vec![], crow_command_2),
+        ]);
+
+        assert_eq!(state.fuzz_result().commands(), &scored_commands);
+        assert!(state
+            .fuzz_result()
+            ._command_ids()
+            .contains(&"test_command_1".to_string()));
+        assert!(state
+            .fuzz_result()
+            ._command_ids()
+            .contains(&"test_command_2".to_string()));
+    }
+
+    #[test]
+    fn updates_fuzz_result_and_returns_it_if_not_exists() {
+        let fn_path = &format!("./testdata/tmp/{}", nanoid!());
+        let file_path = FilePath::new(Some(fn_path), Some("crow.json"));
+
+        let state = State::new(Some(file_path));
+
+        let scored_commands = ScoredCommands::normalize(&[]);
+
+        assert_eq!(state.fuzz_result().commands(), &scored_commands);
+
+        std::fs::remove_dir_all(Path::new(fn_path)).unwrap();
     }
 }
