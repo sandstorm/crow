@@ -14,7 +14,7 @@ use crate::crow_commands::{CrowCommand, Id};
 
 /// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
 /// a list of matching indices.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct ScoredCommand {
     score: i64,
     indices: Vec<usize>,
@@ -57,7 +57,7 @@ impl ScoredCommand {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ScoredCommands(HashMap<Id, ScoredCommand>);
 
 impl Deref for ScoredCommands {
@@ -92,5 +92,32 @@ impl ScoredCommands {
 
     pub fn denormalize(&self) -> impl Iterator<Item = &ScoredCommand> {
         self.values()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{crow_commands::CrowCommand, scored_commands::ScoredCommands};
+
+    use super::ScoredCommand;
+
+    #[test]
+    fn correctly_normalizes_and_denormalizes() {
+        let command = ScoredCommand::new(
+            1,
+            vec![1, 2],
+            CrowCommand {
+                id: "sc_1".to_string(),
+                command: "echo hi".to_string(),
+                description: "".to_string(),
+            },
+        );
+
+        let scored_commands = ScoredCommands::normalize(&[command.clone()]);
+
+        assert_eq!(scored_commands.get("sc_1").unwrap(), &command);
+
+        let denormalized: Vec<ScoredCommand> = scored_commands.denormalize().cloned().collect();
+        assert_eq!(denormalized, vec![command]);
     }
 }

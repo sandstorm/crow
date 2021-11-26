@@ -68,9 +68,8 @@ fn handle_delete(event: CEvent, state: &mut State) -> Result<(), Error> {
                 modifiers: KeyModifiers::NONE,
             } => {
                 if let Some(c) = state.selected_crow_command() {
-                    let connection = CrowDBConnection::new(state.db_file_path().clone())
-                        .remove_command(c)
-                        .write();
+                    let mut connection = CrowDBConnection::new(state.db_file_path().clone());
+                    connection.remove_command(c).write();
 
                     let commands = connection.commands();
 

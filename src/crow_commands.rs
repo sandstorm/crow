@@ -11,7 +11,7 @@ use std::{
 // TODO maybe change this so that it uses the newtype pattern
 pub type Id = String;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd)]
 pub struct CrowCommand {
     pub id: Id,
     pub command: String,
@@ -36,6 +36,7 @@ impl Display for CrowCommand {
     }
 }
 
+#[derive(PartialEq, Clone)]
 pub struct Commands(HashMap<Id, CrowCommand>);
 
 impl Commands {
@@ -48,6 +49,8 @@ impl Commands {
         )
     }
 
+    // TODO returning an arbitrary order is a bit weird from a users perspective,
+    // we should probably make this somehow sorted.
     pub fn denormalize(&self) -> impl Iterator<Item = &CrowCommand> {
         self.values()
     }
@@ -99,7 +102,7 @@ impl Debug for Commands {
 
 /// Crow commands are a normalized view of the commands that are stored inside
 /// the crow_db.json file.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct CrowCommands {
     commands: Commands,
 
@@ -108,6 +111,13 @@ pub struct CrowCommands {
 }
 
 impl CrowCommands {
+    pub fn _new(commands: Commands, command_ids: Vec<Id>) -> Self {
+        Self {
+            commands,
+            command_ids,
+        }
+    }
+
     /// Get a reference to the crow commands's commands.
     pub fn commands(&self) -> &Commands {
         &self.commands
