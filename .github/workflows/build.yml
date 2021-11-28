@@ -8,6 +8,8 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - name: cache
+        uses: Swatinem/rust-cache@v1
       - name: lint
         uses: actions-rs/clippy-check@v1
         with:
@@ -17,8 +19,6 @@ jobs:
         with:
           command: build
           use-cross: true
-      - name: cache
-        uses: Swatinem/rust-cache@v1
       - name: test
         uses: actions-rs/cargo@v1
         with:
