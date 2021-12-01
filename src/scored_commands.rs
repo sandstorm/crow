@@ -8,7 +8,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::crow_commands::{CrowCommand, Id};
+use crate::crow_commands::Id;
 
 /// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
 /// a list of matching indices.
@@ -16,15 +16,15 @@ use crate::crow_commands::{CrowCommand, Id};
 pub struct ScoredCommand {
     score: i64,
     indices: Vec<usize>,
-    command: CrowCommand,
+    command_id: Id,
 }
 
 impl ScoredCommand {
-    pub fn new(score: i64, indices: Vec<usize>, command: CrowCommand) -> Self {
+    pub fn new(score: i64, indices: Vec<usize>, command_id: Id) -> Self {
         Self {
             score,
             indices,
-            command,
+            command_id,
         }
     }
 
@@ -38,9 +38,9 @@ impl ScoredCommand {
         self.indices.as_ref()
     }
 
-    /// Get a reference to the scored command's command.
-    pub fn command(&self) -> &CrowCommand {
-        &self.command
+    /// Get a reference to the scored command's command id.
+    pub fn command_id(&self) -> &Id {
+        &self.command_id
     }
 
     /// Set the scored command's score.
@@ -77,7 +77,7 @@ impl ScoredCommands {
         Self(
             commands
                 .iter()
-                .map(|cmd| (cmd.command.id.clone(), cmd.clone()))
+                .map(|cmd| (cmd.command_id.clone(), cmd.clone()))
                 .collect(),
         )
     }
@@ -89,21 +89,13 @@ impl ScoredCommands {
 
 #[cfg(test)]
 mod tests {
-    use crate::{crow_commands::CrowCommand, scored_commands::ScoredCommands};
+    use crate::scored_commands::ScoredCommands;
 
     use super::ScoredCommand;
 
     #[test]
     fn correctly_normalizes_and_denormalizes() {
-        let command = ScoredCommand::new(
-            1,
-            vec![1, 2],
-            CrowCommand {
-                id: "sc_1".to_string(),
-                command: "echo hi".to_string(),
-                description: "".to_string(),
-            },
-        );
+        let command = ScoredCommand::new(1, vec![1, 2], "sc_1".to_string());
 
         let scored_commands = ScoredCommands::normalize(&[command.clone()]);
 

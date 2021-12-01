@@ -1,3 +1,4 @@
+use crate::crow_commands::CrowCommand;
 use crate::crow_db::FilePath;
 use crate::events::{CliEvent, InputEvent};
 use crate::state::{MenuItem, State};
@@ -81,13 +82,25 @@ fn render(
 
         frame.render_widget(rendering::keybindings(state.active_menu_item()), layout[0]);
 
-        let commands = state.fuzz_result_or_all();
+        let scored_commands = state.fuzz_result_or_all();
 
         let inner_split_layout = rendering::inner_split_layout(layout[1]);
 
+        let filtered_crow_commands = scored_commands
+            .iter()
+            .map(|sc| {
+                state
+                    .crow_commands()
+                    .commands()
+                    .get(sc.command_id())
+                    .unwrap()
+                    .clone()
+            })
+            .collect::<Vec<CrowCommand>>();
+
         if state.has_crow_commands() {
             frame.render_stateful_widget(
-                rendering::command_list(commands, inner_split_layout[0]),
+                rendering::command_list(filtered_crow_commands, inner_split_layout[0]),
                 inner_split_layout[0],
                 state.mut_command_list(),
             );
