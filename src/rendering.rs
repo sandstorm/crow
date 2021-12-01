@@ -14,6 +14,7 @@ use tui::{
     widgets::{Block, Borders, List, ListItem},
 };
 use tui::{text::Span, widgets::Tabs};
+use unicode_width::UnicodeWidthStr;
 
 use crate::crow_commands::CrowCommand;
 use crate::scored_commands::ScoredCommand;
@@ -166,12 +167,29 @@ pub fn keybindings(active_menu_item: &MenuItem) -> Tabs<'static> {
 /// For selection to work this needs to be rendered inside a stateful_widget
 /// NOTE: Selection input is handled inside [crate::input]
 /// NOTE: The stateful_widget binding happens in [crate::commands::default::render]
-pub fn command_list(commands: Vec<ScoredCommand>) -> List<'static> {
-    let list_items: Vec<ListItem> = commands.iter().map(ListItem::new).collect();
+pub fn command_list<'a>(commands: Vec<ScoredCommand>, frame_size: Rect) -> List<'a> {
+    let list_items: Vec<ListItem> = commands
+        .iter()
+        .map(|sc| {
+            let command = sc.command().command.clone();
+            let available_width = usize::from(frame_size.width);
+            let command_width = UnicodeWidthStr::width(command.as_str());
+
+            if available_width > command_width {
+                Text::from(command)
+            } else {
+                Text::from(format!(
+                    "{}...",
+                    command[..available_width - 10].to_string()
+                ))
+            }
+        })
+        .map(ListItem::new)
+        .collect();
 
     List::new(list_items)
         .block(Block::default().title("Commands").borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
+        // .style(Style::default().fg(Color::White))
         .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
         .highlight_symbol(">> ")
 }

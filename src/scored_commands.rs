@@ -8,8 +8,6 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use tui::text::Text;
-
 use crate::crow_commands::{CrowCommand, Id};
 
 /// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
@@ -19,12 +17,6 @@ pub struct ScoredCommand {
     score: i64,
     indices: Vec<usize>,
     command: CrowCommand,
-}
-
-impl From<&ScoredCommand> for Text<'_> {
-    fn from(cmd: &ScoredCommand) -> Self {
-        Text::from(cmd.command().command.clone())
-    }
 }
 
 impl ScoredCommand {
@@ -52,7 +44,7 @@ impl ScoredCommand {
     }
 
     /// Set the scored command's score.
-    pub fn set_score(&mut self, score: i64) {
+    pub fn _set_score(&mut self, score: i64) {
         self.score = score;
     }
 }
