@@ -139,11 +139,14 @@ fn handle_edit(
                     let edited_command = Editor::new()
                         .edit(&command.command)
                         .unwrap_or_else(|e| eject(&format!("Could not edit command. {}", e)));
+
                     state
                         .crow_commands_mut()
                         .commands_mut()
                         .update_command(command.id, &edited_command.unwrap_or(command.command));
+
                     state.write_commands_to_db();
+                    state.set_active_menu_item(MenuItem::Find);
 
                     resume_input_thread(main_tx);
                 }

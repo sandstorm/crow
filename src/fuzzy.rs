@@ -41,7 +41,7 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
     if pattern.is_empty() {
         return commands
             .into_iter()
-            .map(|c| ScoredCommand::new(1, vec![], c))
+            .map(|c| ScoredCommand::new(1, vec![], c.id))
             .collect();
     }
 
@@ -49,8 +49,8 @@ pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<S
     let mut commands: Vec<ScoredCommand> = commands
         .into_iter()
         .map(|c| match matcher.fuzzy_indices(&c.match_str(), pattern) {
-            Some((score, indices)) => ScoredCommand::new(score, indices, c),
-            None => ScoredCommand::new(0, vec![], c),
+            Some((score, indices)) => ScoredCommand::new(score, indices, c.id),
+            None => ScoredCommand::new(0, vec![], c.id),
         })
         .filter(|c| c.score() > 50)
         .collect();
@@ -82,7 +82,7 @@ mod tests {
 
         let result = fuzzy_search_commands(vec![command.clone()], "");
 
-        let scored_command = ScoredCommand::new(1, vec![], command);
+        let scored_command = ScoredCommand::new(1, vec![], command.id);
         let expected: Vec<ScoredCommand> = vec![scored_command];
         assert_eq!(expected, result);
     }
@@ -110,8 +110,8 @@ mod tests {
         let result =
             fuzzy_search_commands(vec![command1.clone(), command2.clone(), command3], "echo");
 
-        let scored_command1 = ScoredCommand::new(91, vec![0, 1, 2, 3], command1);
-        let scored_command2 = ScoredCommand::new(75, vec![0, 2, 9, 14], command2);
+        let scored_command1 = ScoredCommand::new(91, vec![0, 1, 2, 3], command1.id);
+        let scored_command2 = ScoredCommand::new(75, vec![0, 2, 9, 14], command2.id);
 
         let expected: Vec<ScoredCommand> = vec![scored_command1, scored_command2];
         assert_eq!(expected, result);

@@ -136,7 +136,7 @@ impl State {
             ScoredCommands::normalize(&scored_commands),
             scored_commands
                 .iter()
-                .map(|c| c.command().id.clone())
+                .map(|c| c.command_id().clone())
                 .collect(),
         );
     }
@@ -189,7 +189,7 @@ impl State {
         let selected_command_id = self
             .fuzz_result_or_all()
             .get(index)
-            .map(|c| c.command().id.clone());
+            .map(|c| c.command_id().clone());
 
         self.set_selected_command_id(selected_command_id);
     }
@@ -367,8 +367,8 @@ mod tests {
         };
 
         let scored_commands = ScoredCommands::normalize(&[
-            ScoredCommand::new(1, vec![], crow_command_1),
-            ScoredCommand::new(1, vec![], crow_command_2),
+            ScoredCommand::new(1, vec![], crow_command_1.id),
+            ScoredCommand::new(1, vec![], crow_command_2.id),
         ]);
 
         assert_eq!(state.fuzz_result().commands(), &scored_commands);

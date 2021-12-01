@@ -17,7 +17,6 @@ use tui::{text::Span, widgets::Tabs};
 use unicode_width::UnicodeWidthStr;
 
 use crate::crow_commands::CrowCommand;
-use crate::scored_commands::ScoredCommand;
 use crate::state::MenuItem;
 
 // TODO most (but not all) of the Paragraphs which are annotated with 'static lifetime
@@ -167,11 +166,11 @@ pub fn keybindings(active_menu_item: &MenuItem) -> Tabs<'static> {
 /// For selection to work this needs to be rendered inside a stateful_widget
 /// NOTE: Selection input is handled inside [crate::input]
 /// NOTE: The stateful_widget binding happens in [crate::commands::default::render]
-pub fn command_list<'a>(commands: Vec<ScoredCommand>, frame_size: Rect) -> List<'a> {
+pub fn command_list<'a>(commands: Vec<CrowCommand>, frame_size: Rect) -> List<'a> {
     let list_items: Vec<ListItem> = commands
         .iter()
-        .map(|sc| {
-            let command = sc.command().command.clone();
+        .map(|c| {
+            let command = c.command.clone();
             let available_width = usize::from(frame_size.width);
             let command_width = UnicodeWidthStr::width(command.as_str());
 
