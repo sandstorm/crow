@@ -87,7 +87,7 @@ fn render(
 
         if state.has_crow_commands() {
             frame.render_stateful_widget(
-                rendering::command_list(commands),
+                rendering::command_list(commands, inner_split_layout[0]),
                 inner_split_layout[0],
                 state.mut_command_list(),
             );
@@ -154,6 +154,7 @@ fn main_loop(
     };
 
     let mut state = State::new(Some(file_path));
+    state.select_command(0);
 
     loop {
         render(&mut terminal, &mut state).expect("Can render");
