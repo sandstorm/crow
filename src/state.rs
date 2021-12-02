@@ -69,19 +69,22 @@ impl State {
             state.set_db_file_path(path);
         }
 
-        // TODO expose error handling and use [eject] where possible
+        // Retrieve commands from db
         let commands = CrowDBConnection::new(state.db_file_path.clone())
             .commands()
             .to_vec();
 
+        // Initialize command_ids on state
         state
             .crow_commands
             .set_command_ids(commands.iter().map(|c| c.id.clone()).collect());
 
+        // Initialize commands on state
         state
             .crow_commands_mut()
             .set_commands(Commands::normalize(&commands));
 
+        // Select first command
         state.select_command(0);
 
         state
@@ -154,8 +157,11 @@ impl State {
                     .collect(),
                 "",
             );
-            self.set_fuzz_result(fuzz_result.clone());
-            fuzz_result
+            self.set_fuzz_result(fuzz_result);
+
+            // We can't just simply return the fuzz result here, because
+            // denormalization currently does not return the vec in a specific order
+            self.fuzz_result().scores().denormalize().cloned().collect()
         }
     }
 

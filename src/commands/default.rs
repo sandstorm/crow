@@ -167,7 +167,6 @@ fn main_loop(
     };
 
     let mut state = State::new(Some(file_path));
-    state.select_command(0);
 
     loop {
         render(&mut terminal, &mut state).expect("Can render");
