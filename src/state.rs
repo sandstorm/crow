@@ -157,11 +157,8 @@ impl State {
                     .collect(),
                 "",
             );
-            self.set_fuzz_result(fuzz_result);
-
-            // We can't just simply return the fuzz result here, because
-            // denormalization currently does not return the vec in a specific order
-            self.fuzz_result().scores().denormalize().cloned().collect()
+            self.set_fuzz_result(fuzz_result.clone());
+            fuzz_result
         }
     }
 
@@ -306,7 +303,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "FIXME arbitrary order of commands because of denormalization"]
     fn correctly_selects_command() {
         let file_path = FilePath::new(Some("./testdata"), Some("crow.json"));
 

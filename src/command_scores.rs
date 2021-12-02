@@ -3,10 +3,11 @@
 //! of the search result.
 
 use std::{
-    collections::HashMap,
     fmt::Debug,
     ops::{Deref, DerefMut},
 };
+
+use indexmap::IndexMap;
 
 use crate::crow_commands::Id;
 
@@ -50,10 +51,10 @@ impl CommandScore {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CommandScores(HashMap<Id, CommandScore>);
+pub struct CommandScores(IndexMap<Id, CommandScore>);
 
 impl Deref for CommandScores {
-    type Target = HashMap<Id, CommandScore>;
+    type Target = IndexMap<Id, CommandScore>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -68,7 +69,7 @@ impl DerefMut for CommandScores {
 
 impl Default for CommandScores {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(IndexMap::default())
     }
 }
 

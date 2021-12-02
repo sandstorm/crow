@@ -14,6 +14,7 @@ fuzzy-matcher = "0.3"
 nanoid = "0.4.0"
 copypasta = "0.7.1"
 shellexpand = "2.1.0"
+indexmap = "1.7.0"
 
 
 ###############
