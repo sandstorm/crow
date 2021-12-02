@@ -3,28 +3,28 @@ use std::cmp::Reverse;
 use fuzzy_matcher::FuzzyMatcher;
 
 use crate::{
+    command_scores::{CommandScore, CommandScores},
     crow_commands::{CrowCommand, Id},
-    scored_commands::{ScoredCommand, ScoredCommands},
 };
 
 /// The [FuzzResult] contains [CrowCommands] with scoring metadata
 #[derive(Debug, Default, PartialEq)]
 pub struct FuzzResult {
-    commands: ScoredCommands,
+    scores: CommandScores,
     command_ids: Vec<Id>,
 }
 
 impl FuzzResult {
-    pub fn new(commands: ScoredCommands, command_ids: Vec<Id>) -> Self {
+    pub fn new(scores: CommandScores, command_ids: Vec<Id>) -> Self {
         Self {
-            commands,
+            scores,
             command_ids,
         }
     }
 
     /// Get a reference to the fuzz result's commands.
-    pub fn commands(&self) -> &ScoredCommands {
-        &self.commands
+    pub fn scores(&self) -> &CommandScores {
+        &self.scores
     }
 
     /// Get a reference to the fuzz result's command ids.
@@ -37,38 +37,38 @@ impl FuzzResult {
 /// Commands stay inside the list as long as they reach a certain score.
 /// NOTE: the score is still being fine tuned - this is just a first draft
 /// Results are also sorted according to their score
-pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<ScoredCommand> {
+pub fn fuzzy_search_commands(commands: Vec<CrowCommand>, pattern: &str) -> Vec<CommandScore> {
     if pattern.is_empty() {
         return commands
             .into_iter()
-            .map(|c| ScoredCommand::new(1, vec![], c.id))
+            .map(|c| CommandScore::new(1, vec![], c.id))
             .collect();
     }
 
     let matcher = fuzzy_matcher::skim::SkimMatcherV2::default();
-    let mut commands: Vec<ScoredCommand> = commands
+    let mut scores: Vec<CommandScore> = commands
         .into_iter()
         .map(|c| match matcher.fuzzy_indices(&c.match_str(), pattern) {
-            Some((score, indices)) => ScoredCommand::new(score, indices, c.id),
-            None => ScoredCommand::new(0, vec![], c.id),
+            Some((score, indices)) => CommandScore::new(score, indices, c.id),
+            None => CommandScore::new(0, vec![], c.id),
         })
         .filter(|c| c.score() > 50)
         .collect();
 
-    commands.sort_by_key(|c| Reverse(c.score()));
-    commands
+    scores.sort_by_key(|c| Reverse(c.score()));
+    scores
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{crow_commands::CrowCommand, scored_commands::ScoredCommand};
+    use crate::{command_scores::CommandScore, crow_commands::CrowCommand};
 
     use super::fuzzy_search_commands;
 
     #[test]
     fn dont_error_on_empty_command_list() {
         let result = fuzzy_search_commands(vec![], "test");
-        let expected: Vec<ScoredCommand> = vec![];
+        let expected: Vec<CommandScore> = vec![];
         assert_eq!(expected, result);
     }
 
@@ -82,8 +82,8 @@ mod tests {
 
         let result = fuzzy_search_commands(vec![command.clone()], "");
 
-        let scored_command = ScoredCommand::new(1, vec![], command.id);
-        let expected: Vec<ScoredCommand> = vec![scored_command];
+        let score = CommandScore::new(1, vec![], command.id);
+        let expected: Vec<CommandScore> = vec![score];
         assert_eq!(expected, result);
     }
 
@@ -110,10 +110,10 @@ mod tests {
         let result =
             fuzzy_search_commands(vec![command1.clone(), command2.clone(), command3], "echo");
 
-        let scored_command1 = ScoredCommand::new(91, vec![0, 1, 2, 3], command1.id);
-        let scored_command2 = ScoredCommand::new(75, vec![0, 2, 9, 14], command2.id);
+        let score_1 = CommandScore::new(91, vec![0, 1, 2, 3], command1.id);
+        let score_2 = CommandScore::new(75, vec![0, 2, 9, 14], command2.id);
 
-        let expected: Vec<ScoredCommand> = vec![scored_command1, scored_command2];
+        let expected: Vec<CommandScore> = vec![score_1, score_2];
         assert_eq!(expected, result);
     }
 }

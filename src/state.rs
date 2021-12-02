@@ -1,8 +1,8 @@
 use crate::{
+    command_scores::{CommandScore, CommandScores},
     crow_commands::{Commands, CrowCommand, CrowCommands, Id},
     crow_db::{CrowDBConnection, FilePath},
     fuzzy::{fuzzy_search_commands, FuzzResult},
-    scored_commands::{ScoredCommand, ScoredCommands},
 };
 use std::fmt::Debug;
 
@@ -131,10 +131,10 @@ impl State {
     }
 
     /// Set the state's fuzz result.
-    pub fn set_fuzz_result(&mut self, scored_commands: Vec<ScoredCommand>) {
+    pub fn set_fuzz_result(&mut self, command_scores: Vec<CommandScore>) {
         self.fuzz_result = FuzzResult::new(
-            ScoredCommands::normalize(&scored_commands),
-            scored_commands
+            CommandScores::normalize(&command_scores),
+            command_scores
                 .iter()
                 .map(|c| c.command_id().clone())
                 .collect(),
@@ -142,13 +142,9 @@ impl State {
     }
 
     /// Get a reference to the state's fuzz result.
-    pub fn fuzz_result_or_all(&mut self) -> Vec<ScoredCommand> {
-        if !self.fuzz_result().commands().is_empty() || !self.input.is_empty() {
-            self.fuzz_result()
-                .commands()
-                .denormalize()
-                .cloned()
-                .collect()
+    pub fn fuzz_result_or_all(&mut self) -> Vec<CommandScore> {
+        if !self.fuzz_result().scores().is_empty() || !self.input.is_empty() {
+            self.fuzz_result().scores().denormalize().cloned().collect()
         } else {
             let fuzz_result = fuzzy_search_commands(
                 self.crow_commands()
@@ -252,9 +248,9 @@ mod tests {
     use nanoid::nanoid;
 
     use crate::{
+        command_scores::{CommandScore, CommandScores},
         crow_commands::{Commands, CrowCommand, CrowCommands, Id},
         crow_db::FilePath,
-        scored_commands::{ScoredCommand, ScoredCommands},
     };
 
     use super::State;
@@ -366,12 +362,12 @@ mod tests {
             description: "".to_string(),
         };
 
-        let scored_commands = ScoredCommands::normalize(&[
-            ScoredCommand::new(1, vec![], crow_command_1.id),
-            ScoredCommand::new(1, vec![], crow_command_2.id),
+        let command_scores = CommandScores::normalize(&[
+            CommandScore::new(1, vec![], crow_command_1.id),
+            CommandScore::new(1, vec![], crow_command_2.id),
         ]);
 
-        assert_eq!(state.fuzz_result().commands(), &scored_commands);
+        assert_eq!(state.fuzz_result().scores(), &command_scores);
         assert!(state
             .fuzz_result()
             ._command_ids()
@@ -389,9 +385,9 @@ mod tests {
 
         let state = State::new(Some(file_path));
 
-        let scored_commands = ScoredCommands::normalize(&[]);
+        let command_scores = CommandScores::normalize(&[]);
 
-        assert_eq!(state.fuzz_result().commands(), &scored_commands);
+        assert_eq!(state.fuzz_result().scores(), &command_scores);
 
         std::fs::remove_dir_all(Path::new(fn_path)).unwrap();
     }

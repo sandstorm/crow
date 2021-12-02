@@ -82,11 +82,11 @@ fn render(
 
         frame.render_widget(rendering::keybindings(state.active_menu_item()), layout[0]);
 
-        let scored_commands = state.fuzz_result_or_all();
+        let command_scores = state.fuzz_result_or_all();
 
         let inner_split_layout = rendering::inner_split_layout(layout[1]);
 
-        let filtered_crow_commands = scored_commands
+        let filtered_crow_commands = command_scores
             .iter()
             .map(|sc| {
                 state
@@ -109,7 +109,7 @@ fn render(
         }
 
         if let Some(c) = state.selected_crow_command() {
-            let highlight_indices = if let Some(c) = state.fuzz_result().commands().get(&c.id) {
+            let highlight_indices = if let Some(c) = state.fuzz_result().scores().get(&c.id) {
                 c.indices()
             } else {
                 &[]
