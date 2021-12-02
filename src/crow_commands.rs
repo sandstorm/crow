@@ -1,9 +1,9 @@
 //! [CrowCommand] models which represent a command saved by the user inside [CrowDB] containing
 //! a unique [Id], the actual command and a description.
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     fmt::{self, Debug, Display},
     ops::{Deref, DerefMut},
 };
@@ -37,7 +37,7 @@ impl Display for CrowCommand {
 }
 
 #[derive(PartialEq, Clone)]
-pub struct Commands(HashMap<Id, CrowCommand>);
+pub struct Commands(IndexMap<Id, CrowCommand>);
 
 impl Commands {
     pub fn normalize(commands: &[CrowCommand]) -> Self {
@@ -75,7 +75,7 @@ impl Commands {
 }
 
 impl Deref for Commands {
-    type Target = HashMap<Id, CrowCommand>;
+    type Target = IndexMap<Id, CrowCommand>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -90,7 +90,7 @@ impl DerefMut for Commands {
 
 impl Default for Commands {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(IndexMap::default())
     }
 }
 
