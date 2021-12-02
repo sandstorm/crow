@@ -2,6 +2,7 @@
 
 //! This library provides the [run] and [eject] functions which are used by the crow binary crate
 
+mod command_scores;
 mod commands;
 mod crow_commands;
 mod crow_db;
@@ -10,7 +11,6 @@ mod fuzzy;
 mod history;
 mod input;
 mod rendering;
-mod scored_commands;
 mod state;
 
 use crossterm::{event::DisableMouseCapture, execute, terminal::disable_raw_mode};

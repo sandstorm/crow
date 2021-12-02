@@ -13,13 +13,13 @@ use crate::crow_commands::Id;
 /// A [ScoredCommand] contains a [CrowCommand] alongside scoring metadata and
 /// a list of matching indices.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct ScoredCommand {
+pub struct CommandScore {
     score: i64,
     indices: Vec<usize>,
     command_id: Id,
 }
 
-impl ScoredCommand {
+impl CommandScore {
     pub fn new(score: i64, indices: Vec<usize>, command_id: Id) -> Self {
         Self {
             score,
@@ -50,58 +50,58 @@ impl ScoredCommand {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScoredCommands(HashMap<Id, ScoredCommand>);
+pub struct CommandScores(HashMap<Id, CommandScore>);
 
-impl Deref for ScoredCommands {
-    type Target = HashMap<Id, ScoredCommand>;
+impl Deref for CommandScores {
+    type Target = HashMap<Id, CommandScore>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for ScoredCommands {
+impl DerefMut for CommandScores {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl Default for ScoredCommands {
+impl Default for CommandScores {
     fn default() -> Self {
         Self(HashMap::default())
     }
 }
 
-impl ScoredCommands {
-    pub fn normalize(commands: &[ScoredCommand]) -> Self {
+impl CommandScores {
+    pub fn normalize(scores: &[CommandScore]) -> Self {
         Self(
-            commands
+            scores
                 .iter()
-                .map(|cmd| (cmd.command_id.clone(), cmd.clone()))
+                .map(|score| (score.command_id.clone(), score.clone()))
                 .collect(),
         )
     }
 
-    pub fn denormalize(&self) -> impl Iterator<Item = &ScoredCommand> {
+    pub fn denormalize(&self) -> impl Iterator<Item = &CommandScore> {
         self.values()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::scored_commands::ScoredCommands;
+    use crate::command_scores::CommandScores;
 
-    use super::ScoredCommand;
+    use super::CommandScore;
 
     #[test]
     fn correctly_normalizes_and_denormalizes() {
-        let command = ScoredCommand::new(1, vec![1, 2], "sc_1".to_string());
+        let score = CommandScore::new(1, vec![1, 2], "sc_1".to_string());
 
-        let scored_commands = ScoredCommands::normalize(&[command.clone()]);
+        let scores = CommandScores::normalize(&[score.clone()]);
 
-        assert_eq!(scored_commands.get("sc_1").unwrap(), &command);
+        assert_eq!(scores.get("sc_1").unwrap(), &score);
 
-        let denormalized: Vec<ScoredCommand> = scored_commands.denormalize().cloned().collect();
-        assert_eq!(denormalized, vec![command]);
+        let denormalized: Vec<CommandScore> = scores.denormalize().cloned().collect();
+        assert_eq!(denormalized, vec![score]);
     }
 }
