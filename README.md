@@ -77,3 +77,7 @@ When you press enter on command, **crow** will exit and copy the command into yo
 > fuzzy search your notes anyway, you might not gain that much out of using **crow**.
 > However I like to have focused tools and to be able to quickly access stuff from the command line, which
 > is why I built crow.
+
+### Are there any alternatives?
+Yes, apparently there is a pretty cool and more sophisticated alternative: [hoard](https://github.com/Hyde46/hoard) - definitely check that out as well.
+It just came to my attention recently by a comment from a colleague - so I did not know this existet at the time of writing crow :)
